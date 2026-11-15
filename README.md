@@ -1,83 +1,85 @@
-# PR Pulse 🚀
+# 🛡️ PR-Pulse
 
-**PR Pulse** is a lightweight, AI-powered GitHub Pull Request reviewer. It automatically fetches pull request code diffs, analyzes them for bugs, logic issues, security vulnerabilities, and code quality using Google's **Gemini 2.5 Flash** model, and posts the constructive feedback directly back to the pull request as a comment.
+> Automated Git Pull Request Security & Quality Analysis Service using GitHub Webhooks.
 
----
-
-## 🌟 Features
-
-- **Automated Diff Extraction**: Connects directly to the GitHub API to fetch PR diffs cleanly.
-- **AI-Powered Analysis**: Uses `gemini-2.5-flash` via the latest `google-genai` SDK to analyze changes.
-- **Constructive Code Reviews**: Scans for:
-  - Security issues
-  - Code design patterns and readability
-  - Logical bugs or edge-case flaws
-- **Automatic Feedback Loop**: Packages the AI feedback and automatically comments on the target PR thread.
+PR-Pulse is a self-hostable FastAPI microservice that acts as an automated gatekeeper for version control repositories. It listens for GitHub `pull_request` webhook events, cryptographically verifies payloads using HMAC-SHA256, parses unified git diffs, executes deterministic regex & AST syntax checks, optionally triggers Google Gemini 2.5 Flash for code reasoning, and dispatches review comments back into GitHub PR threads.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 Key Features
 
-- **Language**: Python 3.10+
-- **AI Client**: `google-genai` (Gemini API)
-- **HTTP Client**: `requests` (GitHub REST API v3)
-- **Configuration**: `python-dotenv` for managing credentials securely
+- **Cryptographic Ingestion Gateway:** Validates incoming payloads via constant-time HMAC-SHA256 comparison against `X-Hub-Signature-256`.
+- **Zero-Token Deterministic Scanner:** Flags leaked AWS keys, Stripe secret keys, GitHub tokens, and private SSH/RSA blocks before branch merge.
+- **Python AST Syntax Validator:** Groups patch additions and checks for fatal syntax errors (`ast.parse`) before runtime failure.
+- **Gemini 2.5 Flash Integration:** Provides contextual semantic code quality and edge-case feedback directly on clean diffs.
+- **GitHub REST API Review Dispatcher:** Automatically posts structured markdown feedback and review verdicts (`REQUEST_CHANGES` vs `COMMENT`).
 
 ---
 
-## ⚙️ Setup & Installation
+## 📁 Repository Structure
 
-### 1. Clone the Repository
+```
+pr-pulse/
+├── app/
+│   ├── __init__.py
+│   ├── auth.py           # HMAC-SHA256 validation
+│   ├── diff_parser.py    # Unified diff parser (hunk extraction)
+│   ├── rule_engine.py    # Deterministic secret scanner & AST linting
+│   ├── github_client.py  # Upstream GitHub REST API client
+│   └── main.py           # FastAPI entrypoint (/webhook, /health)
+├── tests/
+│   ├── test_auth.py
+│   ├── test_diff_parser.py
+│   ├── test_rule_engine.py
+│   └── test_integration.py
+├── .env.example
+├── Dockerfile
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 🛠️ Local Setup & Execution
+
+### 1. Clone & Install
 ```bash
 git clone https://github.com/JustKay1029/pr-pulse.git
 cd pr-pulse
-```
-
-### 2. Install Dependencies
-Ensure you have Python installed, then install the package requirements:
-```bash
+python -m venv venv
+venv\Scripts\activate   # On Windows
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
-Create a file named `.env` in the root of the project:
-```ini
-GEMINI_API_KEY="your-gemini-api-key"
-GITHUB_PAT="your-github-personal-access-token"
+### 2. Configure Environment
+Copy `.env.example` to `.env`:
+```env
+GITHUB_TOKEN=ghp_your_personal_access_token
+WEBHOOK_SECRET=your_custom_webhook_secret
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
-> [!IMPORTANT]
-> - **`GEMINI_API_KEY`**: Obtain from Google AI Studio.
-> - **`GITHUB_PAT`**: Generate a Personal Access Token from GitHub settings with access to the repo (`repo` scopes).
-> - Never commit `.env` to version control. It is already added to `.gitignore`.
-
----
-
-## 🚀 How to Run
-
-### Test Gemini Connectivity
-To test that your Gemini API key is correctly configured and working:
+### 3. Run the Server
 ```bash
-python test_gemini.py
+uvicorn app.main:app --reload --port 8000
 ```
+- Interactive API Docs: `http://localhost:8000/docs`
+- Health Endpoint: `http://localhost:8000/health`
 
-### Fetch PR Diff (Dry Run)
-To verify your GitHub credentials and check if you can pull PR diffs:
+### 4. Run Automated Tests
 ```bash
-python fetch_pr.py
-```
-
-### Run the Review Engine (End-to-End)
-To fetch the PR diff, generate the Gemini review, and post it to the PR issues comment thread:
-```bash
-python review_engine.py
+pytest tests/ -v
 ```
 
 ---
 
-## 📋 Future Roadmap
+## 🐳 Docker Deployment
+```bash
+docker build -t pr-pulse .
+docker run -p 8000:8000 --env-file .env pr-pulse
+```
 
-- [ ] Support dynamic CLI inputs for Repo Name and PR Number.
-- [ ] Implement GitHub Actions webhook integration for fully automated runs on PR opening.
-- [ ] Add line-by-line review comments instead of a single top-level issue comment.
-- [ ] Add support for custom system instructions to tailor review style.
+---
+
+## 📜 License
+MIT License. Developed for Version Control Systems (CSE25302).
